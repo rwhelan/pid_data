@@ -4,9 +4,12 @@ import json
 from typing import List
 
 modules = {
-    "11": "ECU",
-    "40": "BCM",
+    "11": "ECU-0x11",
+    "40": "BCM-0x40",
 }
+
+def mod_name_from_can_frame(can_frame: str) -> str:
+    return modules.get(can_frame[9:11], "UNK")
 
 raw_scan = json.loads(open(sys.argv[1], "r").read())
 
@@ -58,4 +61,23 @@ for pid in sorted(raw_scan.keys()):
 
 open("pre_processed.json", "w").write(json.dumps(pre_processed, indent=4))
 
-print(assemble_can_msg(pre_processed["F197"]))
+processed = {}
+for pid in sorted(pre_processed.keys()):
+    processed[pid] = {}
+    for can_frame in pre_processed[pid]:
+
+        mod_name = mod_name_from_can_frame(can_frame)
+        if mod_name not in processed[pid]:
+            processed[pid][mod_name] = []
+
+        processed[pid][mod_name].append(can_frame)
+
+    for mod in processed[pid]:
+        print(pid)
+        processed[pid][mod] = assemble_can_msg(processed[pid][mod])
+
+open("processed.json", "w").write(json.dumps(processed, indent=4))
+
+
+
+
